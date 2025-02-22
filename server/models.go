@@ -21,20 +21,22 @@ type Backend struct {
 }
 
 func (b *Backend) CheckAlive() {
+	log.Print("LoadBalancer.ServerPool.Backend.CheckAlive() => Checking ", b.URL.Host)
 	var isAlive bool = true
 	timeout := 2 * time.Second
-	conn, err := net.DialTimeout("tcp", b.URL.Host, timeout)
-	if err != nil {
+	if conn, err := net.DialTimeout("tcp", b.URL.String(), timeout); err != nil {
 		log.Println("Site unreachable, error: ", err)
 		isAlive = false
+	} else {
+		isAlive = true
+		defer conn.Close()
 	}
-	defer conn.Close()
 
 	b.SetAlive(isAlive)
 }
 
 func (b *Backend) SetAlive(alive bool) {
-	log.Printf("LoadBalancer.ServerPool.Backend.SetAlive() => %s [%s]\n", b.URL, alive)
+	log.Printf("LoadBalancer.ServerPool.Backend.SetAlive() => %s [%v]\n", b.URL, alive)
 	b.mux.Lock()
 	b.Alive = alive
 	b.mux.Unlock()
@@ -135,17 +137,19 @@ func (lb *LoadBalancer) healthCheck() {
 		case <-ticker.C:
 			log.Println("Starting health check...")
 			lb.serverPool.HealthCheck()
-			log.Println()
 		}
 	}
 }
 
 func (lb *LoadBalancer) AddConnection(tok string) error {
+	log.Print("Adding Connection => ", tok)
 	serverUrl, err := url.Parse(tok)
 	if err != nil {
-		log.Printf("LoadBalancer.AddConnection() => token: %s, error: %s", err)
+		log.Printf("LoadBalancer.AddConnection() => token: %s, error: %s", tok, err)
 		return err
 	}
+
+	log.Print("Parsed url => ", serverUrl)
 
 	proxy := httputil.NewSingleHostReverseProxy(serverUrl)
 	proxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, e error) {

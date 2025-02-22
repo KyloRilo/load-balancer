@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyloRilo/load-balancer/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 const (
@@ -17,17 +18,17 @@ const (
 )
 
 var (
-	lb   LoadBalancer = *NewLoadBalancer()
-	port              = flag.Int("port", 3030, "LoadBalancer port")
+	Balancer LoadBalancer = *NewLoadBalancer()
+	Port                  = flag.Int("port", 3030, "LoadBalancer port")
 )
 
-type server struct {
+type Server struct {
 	proto.UnimplementedLoadBalancerServer
 }
 
-func (s *server) AddConnection(_ context.Context, in *proto.ConnRequest) (*proto.ConnResp, error) {
+func (s *Server) AddConnection(_ context.Context, in *proto.ConnRequest) (*proto.ConnResp, error) {
 	log.Printf("Received: %v", in.String())
-	err := lb.AddConnection(in.GetUrl())
+	err := Balancer.AddConnection(in.GetUrl())
 	if err != nil {
 		return &proto.ConnResp{
 			Code: 500,
@@ -39,16 +40,20 @@ func (s *server) AddConnection(_ context.Context, in *proto.ConnRequest) (*proto
 	}, nil
 }
 
+func NewServer() proto.LoadBalancerServer {
+	return &Server{}
+}
+
 func main() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	proto.RegisterLoadBalancerServer(s, &server{})
+	proto.RegisterLoadBalancerServer(s, NewServer())
+	reflection.Register(s)
 
-	go lb.healthCheck()
-
+	go Balancer.healthCheck()
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
