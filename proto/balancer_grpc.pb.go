@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	LoadBalancer_AddConnection_FullMethodName = "/proto.LoadBalancer/AddConnection"
+	LoadBalancer_AddConn_FullMethodName    = "/proto.LoadBalancer/AddConn"
+	LoadBalancer_DeleteConn_FullMethodName = "/proto.LoadBalancer/DeleteConn"
 )
 
 // LoadBalancerClient is the client API for LoadBalancer service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LoadBalancerClient interface {
-	AddConnection(ctx context.Context, in *ConnRequest, opts ...grpc.CallOption) (*ConnResp, error)
+	AddConn(ctx context.Context, in *AddConnReq, opts ...grpc.CallOption) (*AddConnResp, error)
+	DeleteConn(ctx context.Context, in *DeleteConnReq, opts ...grpc.CallOption) (*DeleteConnResp, error)
 }
 
 type loadBalancerClient struct {
@@ -37,10 +39,20 @@ func NewLoadBalancerClient(cc grpc.ClientConnInterface) LoadBalancerClient {
 	return &loadBalancerClient{cc}
 }
 
-func (c *loadBalancerClient) AddConnection(ctx context.Context, in *ConnRequest, opts ...grpc.CallOption) (*ConnResp, error) {
+func (c *loadBalancerClient) AddConn(ctx context.Context, in *AddConnReq, opts ...grpc.CallOption) (*AddConnResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ConnResp)
-	err := c.cc.Invoke(ctx, LoadBalancer_AddConnection_FullMethodName, in, out, cOpts...)
+	out := new(AddConnResp)
+	err := c.cc.Invoke(ctx, LoadBalancer_AddConn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loadBalancerClient) DeleteConn(ctx context.Context, in *DeleteConnReq, opts ...grpc.CallOption) (*DeleteConnResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteConnResp)
+	err := c.cc.Invoke(ctx, LoadBalancer_DeleteConn_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +63,8 @@ func (c *loadBalancerClient) AddConnection(ctx context.Context, in *ConnRequest,
 // All implementations must embed UnimplementedLoadBalancerServer
 // for forward compatibility.
 type LoadBalancerServer interface {
-	AddConnection(context.Context, *ConnRequest) (*ConnResp, error)
+	AddConn(context.Context, *AddConnReq) (*AddConnResp, error)
+	DeleteConn(context.Context, *DeleteConnReq) (*DeleteConnResp, error)
 	mustEmbedUnimplementedLoadBalancerServer()
 }
 
@@ -62,8 +75,11 @@ type LoadBalancerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedLoadBalancerServer struct{}
 
-func (UnimplementedLoadBalancerServer) AddConnection(context.Context, *ConnRequest) (*ConnResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddConnection not implemented")
+func (UnimplementedLoadBalancerServer) AddConn(context.Context, *AddConnReq) (*AddConnResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddConn not implemented")
+}
+func (UnimplementedLoadBalancerServer) DeleteConn(context.Context, *DeleteConnReq) (*DeleteConnResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteConn not implemented")
 }
 func (UnimplementedLoadBalancerServer) mustEmbedUnimplementedLoadBalancerServer() {}
 func (UnimplementedLoadBalancerServer) testEmbeddedByValue()                      {}
@@ -86,20 +102,38 @@ func RegisterLoadBalancerServer(s grpc.ServiceRegistrar, srv LoadBalancerServer)
 	s.RegisterService(&LoadBalancer_ServiceDesc, srv)
 }
 
-func _LoadBalancer_AddConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ConnRequest)
+func _LoadBalancer_AddConn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddConnReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LoadBalancerServer).AddConnection(ctx, in)
+		return srv.(LoadBalancerServer).AddConn(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: LoadBalancer_AddConnection_FullMethodName,
+		FullMethod: LoadBalancer_AddConn_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoadBalancerServer).AddConnection(ctx, req.(*ConnRequest))
+		return srv.(LoadBalancerServer).AddConn(ctx, req.(*AddConnReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LoadBalancer_DeleteConn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteConnReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoadBalancerServer).DeleteConn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LoadBalancer_DeleteConn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoadBalancerServer).DeleteConn(ctx, req.(*DeleteConnReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -112,8 +146,12 @@ var LoadBalancer_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*LoadBalancerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AddConnection",
-			Handler:    _LoadBalancer_AddConnection_Handler,
+			MethodName: "AddConn",
+			Handler:    _LoadBalancer_AddConn_Handler,
+		},
+		{
+			MethodName: "DeleteConn",
+			Handler:    _LoadBalancer_DeleteConn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

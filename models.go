@@ -59,7 +59,12 @@ func (s *ServerPool) AddBackend(backend *Backend) {
 }
 
 func (s *ServerPool) NextIndex() int {
-	return int(atomic.AddUint64(&s.current, uint64(1)) % uint64(len(s.backends)))
+	index := 0
+	if len(s.backends) != 0 {
+		index = int(atomic.AddUint64(&s.current, uint64(1)) % uint64(len(s.backends)))
+	}
+
+	return index
 }
 
 func (s *ServerPool) MarkBackendStatus(backendUrl *url.URL, alive bool) {
@@ -115,6 +120,7 @@ func (lb *LoadBalancer) getRetryFromContext(req *http.Request) int {
 }
 
 func (lb *LoadBalancer) balance(writer http.ResponseWriter, req *http.Request) {
+	log.Print("Balancing...")
 	attempts := lb.getAttemptsFromContext(req)
 	if attempts > 3 {
 		log.Printf("%s(%s) Max attempts reached, terminating\n", req.RemoteAddr, req.URL.Path)
@@ -124,6 +130,7 @@ func (lb *LoadBalancer) balance(writer http.ResponseWriter, req *http.Request) {
 
 	peer := lb.serverPool.GetNextPeer()
 	if peer != nil {
+		log.Print("Serving: ", req)
 		peer.ReverseProxy.ServeHTTP(writer, req)
 		return
 	}

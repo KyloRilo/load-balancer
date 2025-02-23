@@ -73,16 +73,16 @@ func TestLbServer_AddConn(t *testing.T) {
 	tests := []testCase{
 		{
 			name: "AddConnection_Succeeds",
-			in: &proto.ConnRequest{
+			in: &proto.AddConnReq{
 				Url: "google.com",
 			},
-			out: &proto.ConnResp{},
+			out: &proto.AddConnResp{},
 		},
 	}
 
 	log.Println("Init test cases: ", tests)
 	for _, test := range tests {
-		resp, err := client.AddConnection(ctx, test.in.(*proto.ConnRequest))
+		resp, err := client.AddConn(ctx, test.in.(*proto.AddConnReq))
 		testValidator(t, test, resp, err)
 	}
 }

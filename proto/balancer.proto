@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = "github.com/KyloRilo/load-balancer/proto";
+package proto;
+
+service LoadBalancer {
+    rpc AddConn (AddConnReq) returns (AddConnResp) {}
+    rpc DeleteConn (DeleteConnReq) returns (DeleteConnResp) {}
+}
+
+message AddConnReq {
+    string url = 1;
+}
+
+message AddConnResp {
+    int32 code = 1;
+}
+
+message DeleteConnReq {
+    string url = 1;
+}
+
+message DeleteConnResp {
+    int32 code = 1;
+}
